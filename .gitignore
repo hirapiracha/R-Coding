@@ -45,6 +45,13 @@ rsconnect/
 **/*.html
 **/*.docx
 **/*.log
+# For quarto
+**/*_files/ 
 
-# Don't track private files
+# Don't track some folders
 private/
+pdfs/
+videos/
+TODOS.md
+overview.org
+grading/

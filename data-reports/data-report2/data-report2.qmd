@@ -1,0 +1,113 @@
+---
+title: "Data Report 2"
+author: "<fill-in>"
+format: html
+---
+
+# Instructions (remove for final submission)
+
+This file is a template for your second data report. Throughout there are **Notes** that highlight what you should do in a given section. You should remove these before you submit your final report.
+
+I already provide some code blocks that do things we have not yet seen in class, you can leave them as they are. The same goes for descriptions that are not **Notes** -- such as the description of the data.
+
+**Note:** This time, do not include the code in the rendered document -- that is to force you to write the explanations in the text.
+
+**Note:** Final page limit is 6 pages -- not 10 like last time. This is since you should no longer include the code.
+
+# Dataset
+
+```{r load-libraries}
+#| output: false
+#| echo: false
+library(tidyverse)
+```
+
+**Source**: We use data from a online pilot experiment run by Marc Kaufmann. In that study, participants where asked their opinions about several topics (such as "Self-Control" or "Neuroscience"). Specifically, they were asked how controversial, how familiar, etc they thought the topic was; as well as how often they talk with colleagues or family about the topic; and finally whether they heard of the topic last week. All questions except for hearing about the topic last week were answered by choosing a number from 1 to 7 (1 being the least familar/controversial/etc, 7 being the most familiar/controversial/etc). The question on hearing about the topic last week was answered with "yes" or "no".
+
+**Note:** To load the data, use the following codeblock. This assumes that the file `opinions.csv` is in the same folder as this file, `data-report2.qmd`. Check that it loads when rendering, otherwise ask on Slack.
+
+**Note:** Change the `read_csv` to specify what column type you want. Look at `?read_csv` to see examples how you can do that.
+
+```{r load-data}
+opinions <- read_csv("opinions.csv")
+```
+
+**Note:** You should finish the data documentation, I only included the first variable. You have to explore the data and play with it to figure out how many different questions there are and what the columns mean based on my description above (which was purposefully verbal). You should include what the range of answers is in the description below, i.e. what value could be in this field?
+
+**Documentation:**
+
+-   **pid**: the unique participant ID
+-   **tpc:** the topic about which the participant was asked
+-   **qn:** the question the person was asked. 'important' means they were asked how important they felt the topic was.
+-   **ans:** the answer given by the person, depending on the question.
+
+# Cleaning
+
+**Note:** In addition to whatever cleaning you will do, you should also transform the data to make analysis easier: convert the strings "yes" and "no" to the integers `1` and `0` in the `answer` column and then convert all the other answers into numbers too. Otherwise this whole column is stored as strings, making it hard to compute means etc. Beyond that, there is not much cleaning. Since we use the the clean data repeatedly, we give it the short name `df`.
+
+```{r cleaning}
+df <- opinions |>
+  mutate(
+    ans = if_else(
+      qn == "heard-of-last-week", 
+      if_else(ans == "yes", as.integer(1), as.integer(0)),
+      as.integer(ans)
+      )
+    )
+```
+
+**Note:** Now you write this new dataset to a file using `write_csv`. Since we transformed the data so little, this is really pointless in this case (we can do it whenver we need it), but it is good practice. You should write it to the file called `opinions-for-analysis.csv`.
+
+```{r storing}
+
+```
+
+# Exploration
+
+This data was collected in a pilot for a main study. In the main study, participants had read and categorize articles and they had to choose between two topics. For example, they chose whether to read and categorize articles from 'Politics' or from 'Neuroscience'. Moreover, some participants received a reason for or a reason against each topic, based on the data collected in this pilot. For example:
+
+-   "In a previous survey, the topic 'Politics' scored an average of 5.59 out of 7 on the question how important it is." (Reason for 'Politics'.)
+-   "In a previous survey, the topic 'Neuroscience' was the one that participants talked the least with colleagues." (Reason against "Neuroscience".)
+-   "In a previous survey, the topic 'Socioeconomic Inequality' was ranked in the bottom 25% in terms of familiarity." (Reason  - probably - against 'Socioeconomic Inequality'.)
+
+Note that all the reasons are aimed at future participants of another study and tell them about the previous survey results.
+
+Your goal in this analysis is to come up with similar reasons: that is, provide a dataframe where one column contains the topic; another column contains whether the reason is 'for' or 'against'; the third column contains the actual reason as a string; and the fourth column contains your own subjective rating of how strong you find this type of reason.
+
+**Notes (remove entire list in final report - I know the instructions):** Specifically, the first few steps are all the same:
+
+1.  Compute the mean score for each topic for each question and store this in `mean_scores`:
+    -   E.g. the mean score for 'Politics' for the question on how 'important' it is is 5.59. You want to compute the mean score for all the other questions too, and for all the other topics.
+2.  Use this to compute the topic that have the best and the worst score for each question. Store this in `best_worst`, which has as first column the name of the question, as second column the topic that scored best, and as third column the topic that scored worst on this topic.
+    -   E.g. if 'Politics' had the best score on 'important' (it didn't) and 'Neuroscience' the worst (it didn't), then one row of this table would be `'important'`, `'Politics'`, and `'Neuroscience'`.
+3.  Now create a summary table that you include in your report. The first column contains the question (e.g. `'important'`), the next columns should include the mean score across all topics, the median score, and the standard deviation, in addition to at least two more quantiles. You can use this table later to determine the thresholds for ranking high. For example, a topic with a score of 4.5 ranks higher the average score on this question is 3.5 than if the average score is 5.0.
+
+The final steps are more open-ended and you can/should use visualizations to illustrate or argue.
+
+4.  Explore other reasons than those I gave above (e.g. the mean is high or low; the task has the highest or lowest mean) for why people in the main study should choose one topic rather than another. For how many topics does this provide a reason for or against? (See also next question.) For example: suppose you consider that ranking first on any of the questions ('interesting', 'learn_more', etc.) is a good reason for a topic. Then this provides a reason for those topics that rank first for any question, but some topics are never ranked first. For those topics, you need to find another reason. You should find at least one reason for, and one reason against, each topic, even if it means that you have to use 'weak' reasons. Based on your own subjective view, rate how strong a type of reason is on a scale from 1 ("very weak") to 5 ("very strong"). For example, ranking first on any question is clearly a stronger reason than ranking third.
+5.  Based on the previous steps, create a dataframe as described at the start with 4 columns: `topic`, `reason_direction`, `reason`, and `strength_of_reason`. You have to have at least one reason for and one against each topic, ideally two. Display (`count`) the number of reasons for and against each topic. The more original the types of reasons, the better. You are allowed to use similar reasons to those I provide, but it won't lead to a full score.
+    -   Suggestion: create first a dataframe containing reasons for and another one containing reasons against. Then find out how you can combine them into a new, larger dataframe.
+    -   Suggestion: you can create each reason manually, but you can also - as I suggest above - try to find types of reasons that apply to many topics, such as ranking first on any one of the questions (how interesting it is, how much people want to learn about it, etc). I want you to solve this programmatically: how would you solve this problem if there were 100 or 1,000 topics? Clearly you couldn't do it manually.
+    -   The reasons should be sentences like the ones above. See the code snippet below on how to create such sentences automatically with `paste0` (they don't have to be grammatically perfect, but understandable).
+
+```{r create-reasons}
+#| eval: false
+# FIXME: You have to define `mean_scores`.
+create-reasons <- mean_scores |>
+  mutate(
+    reason = paste0("The topic '", tpc, "' scored an average of ",
+                              avg, " on the question how ", qn, " it is.")
+    )
+```
+
+This code pastes together the strings inside of it, creating a single sentence (this assumes that `mean_scores` has columns named `topic`, `avg`, and `question`).
+
+**Note:** Pay attention to the signs. Being 'interesting' is probably a reason for, being 'controversial' may not be.
+
+# Conclusions
+
+**Note:** What have you learned about the topics, the opinions participants have about them, and reasons for or against the different topics? How would your solution scale if there were 100 or 1,000 topics for which you need to generate reasons for or against? What if you could personalize the reasons - which type of data would you ask of participants?
+
+# Code Explanation
+
+Explain how the `if_else` in the block `cleaning` and the `paste0` in the block `create-reasons` work in your words. Give a small example to illustrate, by using a small data frame with only a few rows or a vector as an input.

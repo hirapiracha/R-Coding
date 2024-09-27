@@ -1,0 +1,189 @@
+---
+title: "Lecture 4"
+author: "Marc Kaufmann"
+date: "30/01/2024"
+output: html
+---
+
+Let's continue with chapter 5 of R4DS.
+
+# mutate()
+
+Let us create a narrower tibble with fewer columns so we can see what mutate does.
+
+```{r small-flights}
+library(nycflights13)
+library(tidyverse)
+
+(flights_small <- select(flights,
+                        year:day, 
+                        ends_with("delay"), 
+                        distance,
+                        air_time))
+```
+
+Let us create a new column that computes catch up and the speed in miles:
+
+```{r catch-up-and-speed}
+#| eval: FALSE
+mutate(flights_small, 
+       catchup = dep_delay - arr_delay, 
+       speed_miles = (distance/air_time) * 60)
+```
+
+Since I don't know what speed in miles per hours is, let's convert that:
+
+```{r convert-units}
+mutate(flights_small, 
+       catchup = dep_delay - arr_delay, 
+       speed_km = (distance * 1.61 / air_time) * 60)
+```
+
+Magic numbers in code are great. Every one loves them. Not. They are evil and 
+you should exorcise them:
+
+```{r magic-numbers}
+#| eval: FALSE
+KM_PER_MILE <- 1.61
+
+mutate(
+  flights_small,
+  speed_km = (distance * KM_PER_MILE / air_time) * 60)
+)
+```
+  
+For complicated computations, it is clearer if you create intermediate results: 
+
+```{r intermediate-results}
+#| eval: FALSE
+flights_small |>
+  mutate(
+    distance_km = distance * KM_PER_MILE,
+    air_time_hours = air_time / 60,
+    speed_km = distance_km / air_time_hours
+  )
+```
+
+If you only want to keep the new variables, use `transmute`:
+
+```{r transmute}
+#| eval: FALSE
+transmute(
+  flights_small,
+  distance_km = distance * KM_PER_MILE,
+  air_time_hours = air_time / 60
+)
+```
+
+
+# Vectorized Operations
+
+Vectorized operations are operations that take a vector as an argument and return
+a vector of the same length. Standard arithmetic functions (+, *, etc) are 
+vectorized, as are functions such as `log()`, `log2()`, etc.
+
+Let us use that to extract the hours and minutes from `dep_time` (HHMM):
+
+```{r hours-minutes}
+#| eval: FALSE
+transmute(
+  flights,
+  dep_time,
+  dep_hour = dep_time %/% 100, 
+  dep_minutes = dep_time %% 100
+)
+```
+
+Several other useful functions are `lag`, `lead`, and a variety of cumulative 
+and aggregate functions, and the `n:m` notation is useful to create vectors of
+consecutive integers:
+
+```{r lag-lead}
+#| eval: FALSE
+(x <- c(0,1,2,3,4,5,6,7,8,9))
+(y <- 0:9) 
+(z <- seq(0,9))
+
+(lag(y))
+(lag(lag(y)))
+(lead(y))
+
+cumsum(x)
+cumprod(x)
+cumprod(lead(x))
+cummean(x)
+```
+
+Logical operators also return vectors when comparing vectors: 
+
+```{r logical-operators}
+x > 3
+x > y
+```
+
+But you may wonder: what do some of these even mean?
+
+```{r logical-ops-meaning}
+x == c(2, 4)
+x == c(1, 3, 4)
+```
+
+Finally, you will often want to rank observations:
+
+```{r ranking}
+y <- c(10, 5, 6, 3, 7)
+
+min_rank(y)
+rank(y)
+
+# Can you figure out from playing around with min_rank() how it works exactly?
+min_rank(c(y, 7))
+rank(c(y, 7))
+
+?min_rank
+
+```
+
+## What is not a vectorized operation?
+
+If you use a non-vectorized operation, things can go wrong if you try to use
+it in a mutate, although functions that return a single item will simply return 
+a vector with that single item repeated when a vector is expected:
+
+```{r non-vectorized}
+#| eval: FALSE
+c(2,4)^2 # This is vectorized
+mean(x)
+c(TRUE, FALSE) && c(TRUE, TRUE) # `&&` expects a single element
+
+# What happens when we try this on a dataframe
+transmute(flights, delay = ...)
+transmute(flights, ...)
+```
+
+Notice that the first does not throw an error, because you might have wanted to
+compute the overall mean - but that's not always what you want.
+
+# Class Exercises
+
+**Exercise:** Create several ranges with the n:m notation, i.e. 2:4, 4:8, etc.           Try to find out whether you can also take negative ranges and descending. Read
+?":" for help.
+
+**Exercise:** Use `slice()` to choose the first 10 rows of flights.
+
+**Exercises (for practice):** Do the following exercises from 5.5.2:
+- Exercise 1
+- Exercise 2
+- Exercise 4
+Hint: When you get stuck, try the following two strategies:
+1. Take a single row, and work it out by hand
+2. Create a variable my_flights which contains only a few rows (4 to 10).
+Work out a solution for my_flights, where you can check every step.
+
+# Exercises (Optional)
+
+1. Read/Skim Chapter 5 of Grolemund and Wickham parts 1 through 4 (including select) of Grolemund and Wickham for anything we did not cover. 
+2. Do all the left over exercises from this week in this script. 
+3. Read/skim the chapter 5 from 'R for Data Science' to see what is available. Don't try to remember everything, but you should be able to remember what is possible so that you can find the commands again should you need them in the future. 
+4. Document 4 errors and warnings you actually hit during the week. 
+If you do *not* hit that many errors or receive such warnings, congratulations.
